@@ -1,0 +1,65 @@
+name: Deploy Orion
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Build Backend
+        run: docker build -t ghcr.io/${{ github.repository }}/orion-backend:latest backend/
+
+      - name: Build Frontend
+        run: docker build -t ghcr.io/${{ github.repository }}/orion-frontend:latest frontend/
+
+      - name: Push Backend Image
+        run: docker push ghcr.io/${{ github.repository }}/orion-backend:latest
+
+      - name: Push Frontend Image
+        run: docker push ghcr.io/${{ github.repository }}/orion-frontend:latest
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+
+      - name: Terraform Init
+        run: terraform -chdir=terraform init
+
+      - name: Terraform Apply
+        run: terraform -chdir=terraform apply -auto-approve \
+          -var="server_host=${{ secrets.SERVER_HOST }}" \
+          -var="server_password=${{ secrets.SERVER_PASSWORD }}" \
+          -var="repo_owner=${{ github.repository_owner }}"
+
+      - name: Healthcheck API
+        run: |
+          echo "Aguardando API iniciar..."
+          sleep 15
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://api.oriongrowthstudio.cloud/health || true)
+          if [ "$STATUS" != "200" ]; then
+            echo "❌ Deploy falhou — API não respondeu. Status: $STATUS"
+            exit 1
+          fi
+          echo "✅ API OK — Healthcheck retornou status $STATUS"
+
+      - name: Healthcheck Frontend
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://app.oriongrowthstudio.cloud || true)
+          if [ "$STATUS" != "200" ] && [ "$STATUS" != "301" ] && [ "$STATUS" != "302" ]; then
+            echo "❌ Frontend não respondeu corretamente. Status: $STATUS"
+            exit 1
+          fi
+          echo "✅ Frontend OK — Resposta: $STATUS"
+
+      - name: Deploy Finalizado
+        run: echo "🚀 Deploy completo do Orion — Backend e Frontend atualizados com sucesso!"
