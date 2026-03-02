@@ -19,7 +19,7 @@ APP_NAME="studio-app"
 APP_DIR="/opt/studio-app"
 DATA_DIR="/data/studio-app"
 DOMAIN="studio-app.orionconsultoria.cloud"
-REPO_URL="https://github.com/orionrepresent-dev/Ggrowht-business-SaaS.git"
+REPO_URL="https://github.com/orionrepresent-dev/Orion-Growth-System.git"
 REPO_BRANCH="main"
 
 # ============================================================
