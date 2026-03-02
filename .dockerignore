@@ -1,13 +1,58 @@
-Dockerfile
-.dockerignore
+# Dependencies
 node_modules
-npm-debug.log
-README.md
+.pnp
+.pnp.js
+
+# Build outputs
 .next
+out
+build
+dist
+
+# Development
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
 .git
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
-test
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Tests
+__tests__
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+coverage
+
+# Misc
 *.log
-local-*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.agent-ctx
+download
+upload
+worklog.md
+
+# Data files (will be mounted as volume)
+data
+leads.json

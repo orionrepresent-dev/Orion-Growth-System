@@ -56,30 +56,31 @@ interface AnalysisResult {
   }[]
 }
 
-// Generate mock analysis when APIs fail
-function generateMockAnalysis(url: string): AnalysisResult {
-  const seoScore = Math.floor(Math.random() * 30) + 50
-  const aeoScore = Math.floor(Math.random() * 25) + 40
-  const geoScore = Math.floor(Math.random() * 20) + 35
-  const overallScore = Math.round((seoScore + aeoScore + geoScore) / 3)
+// Generate comprehensive mock analysis
+function generateAnalysis(url: string): AnalysisResult {
+  // Generate deterministic scores based on URL for consistency
+  const urlHash = url.split('').reduce((a, b) => ((a << 5) - a + b.charCodeAt(0)) | 0, 0)
+  const baseSeo = 50 + Math.abs(urlHash % 35)
+  const baseAeo = 40 + Math.abs((urlHash >> 2) % 30)
+  const baseGeo = 35 + Math.abs((urlHash >> 4) % 25)
 
   return {
     url,
     analyzedAt: new Date().toISOString(),
-    overallScore,
+    overallScore: Math.round((baseSeo + baseAeo + baseGeo) / 3),
     scores: {
-      seo: seoScore,
-      aeo: aeoScore,
-      geo: geoScore
+      seo: baseSeo,
+      aeo: baseAeo,
+      geo: baseGeo
     },
     seoAnalysis: {
-      score: seoScore,
+      score: baseSeo,
       findings: [
         {
           category: 'Meta Tags',
-          status: seoScore > 60 ? 'good' : 'warning',
-          message: seoScore > 60 ? 'Meta tags estão bem configuradas' : 'Meta tags precisam de otimização',
-          details: seoScore > 60 ? 'Title e description estão presentes e otimizados' : 'Faltam meta description ou title tags otimizadas'
+          status: baseSeo > 60 ? 'good' : 'warning',
+          message: baseSeo > 60 ? 'Meta tags estão bem configuradas' : 'Meta tags precisam de otimização',
+          details: baseSeo > 60 ? 'Title e description estão presentes e otimizados' : 'Faltam meta description ou title tags otimizadas'
         },
         {
           category: 'Headings',
@@ -89,8 +90,8 @@ function generateMockAnalysis(url: string): AnalysisResult {
         },
         {
           category: 'Velocidade',
-          status: seoScore < 55 ? 'error' : 'warning',
-          message: seoScore < 55 ? 'Tempo de carregamento alto' : 'Velocidade pode ser otimizada',
+          status: baseSeo < 55 ? 'error' : 'warning',
+          message: baseSeo < 55 ? 'Tempo de carregamento alto' : 'Velocidade pode ser otimizada',
           details: 'Otimize imagens e minimize CSS/JS'
         },
         {
@@ -124,23 +125,22 @@ function generateMockAnalysis(url: string): AnalysisResult {
       ]
     },
     aeoAnalysis: {
-      score: aeoScore,
+      score: baseAeo,
       findings: [
         {
           category: 'Featured Snippets',
-          status: aeoScore > 50 ? 'good' : 'warning',
-          message: aeoScore > 50 ? 'Conteúdo estruturado para snippets' : 'Oportunidade de featured snippets'
+          status: baseAeo > 50 ? 'good' : 'warning',
+          message: baseAeo > 50 ? 'Conteúdo estruturado para snippets' : 'Oportunidade de featured snippets'
         },
         {
           category: 'FAQ Schema',
           status: 'warning',
-          message: 'Implementar markup de FAQ',
-          details: 'Adicionar schema.org/FAQPage'
+          message: 'Implementar markup de FAQ'
         },
         {
           category: 'Conteúdo Estruturado',
-          status: aeoScore > 45 ? 'good' : 'warning',
-          message: aeoScore > 45 ? 'Conteúdo bem organizado' : 'Estruturar conteúdo em seções claras'
+          status: baseAeo > 45 ? 'good' : 'warning',
+          message: baseAeo > 45 ? 'Conteúdo bem organizado' : 'Estruturar conteúdo em seções claras'
         },
         {
           category: 'Perguntas Frequentes',
@@ -160,12 +160,12 @@ function generateMockAnalysis(url: string): AnalysisResult {
       ]
     },
     geoAnalysis: {
-      score: geoScore,
+      score: baseGeo,
       findings: [
         {
           category: 'Entity Recognition',
-          status: geoScore > 45 ? 'good' : 'warning',
-          message: geoScore > 45 ? 'Entidades identificáveis' : 'Necessário melhorar entity recognition'
+          status: baseGeo > 45 ? 'good' : 'warning',
+          message: baseGeo > 45 ? 'Entidades identificáveis' : 'Necessário melhorar entity recognition'
         },
         {
           category: 'Content Clarity',
@@ -179,8 +179,8 @@ function generateMockAnalysis(url: string): AnalysisResult {
         },
         {
           category: 'Context',
-          status: geoScore > 40 ? 'good' : 'warning',
-          message: geoScore > 40 ? 'Contexto claro' : 'Adicionar mais contexto ao conteúdo'
+          status: baseGeo > 40 ? 'good' : 'warning',
+          message: baseGeo > 40 ? 'Contexto claro' : 'Adicionar mais contexto ao conteúdo'
         }
       ],
       recommendations: [
@@ -246,10 +246,15 @@ function generateMockAnalysis(url: string): AnalysisResult {
   }
 }
 
+// Max execution time for the entire analysis (20 seconds)
+const MAX_EXECUTION_TIME = 20000
+
 export async function POST(request: NextRequest) {
+  const startTime = Date.now()
+  
   try {
     const body = await request.json()
-    const { url, email, name, company, goals, competitors } = body
+    const { url, competitors } = body
 
     // Validate URL
     let validatedUrl: URL
@@ -257,148 +262,120 @@ export async function POST(request: NextRequest) {
       validatedUrl = new URL(url.startsWith('http') ? url : `https://${url}`)
     } catch {
       return NextResponse.json(
-        { error: 'URL inválida' },
+        { error: 'URL inválida. Por favor, insira uma URL válida.' },
         { status: 400 }
       )
     }
 
-    let websiteContent = ''
-    let searchResults: Array<{ url: string; name: string; snippet: string }> = []
-
-    try {
-      const zai = await ZAI.create()
-
-      // Try to fetch website content
+    // Generate base analysis immediately (this is always returned)
+    const analysis = generateAnalysis(validatedUrl.toString())
+    
+    // Try to enhance with real data ONLY if we have enough time
+    const timeRemaining = MAX_EXECUTION_TIME - (Date.now() - startTime)
+    
+    if (timeRemaining > 8000) {
       try {
-        const contentResponse = await zai.functions.invoke('web_reader', {
+        const zai = await ZAI.create()
+        
+        // Calculate available time for each step
+        const readerTime = Math.min(5000, timeRemaining - 3000)
+        
+        // Try web_reader with calculated timeout
+        const readerPromise = zai.functions.invoke('web_reader', {
           url: validatedUrl.toString()
         })
         
-        if (contentResponse && typeof contentResponse === 'object') {
-          websiteContent = contentResponse.content || contentResponse.html || ''
-        }
-      } catch (readerError) {
-        console.log('Web reader failed, continuing with mock data')
-      }
-
-      // Try to search for competitive data
-      if (company || goals) {
+        const readerTimeout = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Reader timeout')), readerTime)
+        )
+        
         try {
-          const searchQuery = `${company || validatedUrl.hostname} SEO analysis competitors`
-          const searchResponse = await zai.functions.invoke('web_search', {
-            query: searchQuery,
-            num: 5
-          })
-
-          if (Array.isArray(searchResponse)) {
-            searchResults = searchResponse.map((item: { url?: string; name?: string; snippet?: string }) => ({
-              url: item.url || '',
-              name: item.name || '',
-              snippet: item.snippet || ''
-            }))
-          }
-        } catch (searchError) {
-          console.log('Web search failed, continuing with mock data')
-        }
-      }
-
-      // Use LLM for analysis if we have content
-      if (websiteContent || searchResults.length > 0) {
-        try {
-          const prompt = `Analise o seguinte site para SEO, AEO (Answer Engine Optimization) e GEO (Generative Engine Optimization):
-
+          const contentResponse = await Promise.race([readerPromise, readerTimeout]) as {
+            content?: string
+            html?: string
+          } | null
+          
+          if (contentResponse?.content || contentResponse?.html) {
+            const content = contentResponse.content || contentResponse.html || ''
+            
+            // Check if we still have time for LLM
+            const llmTime = MAX_EXECUTION_TIME - (Date.now() - startTime) - 1000
+            
+            if (content.length > 100 && llmTime > 3000) {
+              const llmPromise = zai.chat.completions.create({
+                messages: [
+                  {
+                    role: 'system',
+                    content: 'Você é um especialista em SEO. Responda apenas com JSON válido.'
+                  },
+                  {
+                    role: 'user',
+                    content: `Analise rapidamente este site. Dê scores 0-100 para SEO, AEO, GEO.
 URL: ${validatedUrl.toString()}
-Conteúdo: ${websiteContent.substring(0, 3000)}
-Resultados de busca relacionados: ${JSON.stringify(searchResults).substring(0, 500)}
-
-Forneça uma análise detalhada incluindo:
-1. Pontuação SEO (0-100)
-2. Pontuação AEO (0-100)
-3. Pontuação GEO (0-100)
-4. Principais problemas encontrados
-5. Recomendações priorizadas
-
-Responda em formato JSON com a seguinte estrutura:
-{
-  "seoScore": number,
-  "aeoScore": number,
-  "geoScore": number,
-  "issues": [{ "category": string, "severity": "high|medium|low", "description": string }],
-  "recommendations": [{ "priority": "high|medium|low", "title": string, "description": string }]
-}`
-
-          const completion = await zai.chat.completions.create({
-            messages: [
-              {
-                role: 'system',
-                content: 'Você é um especialista em SEO, AEO e GEO. Responda apenas com JSON válido.'
-              },
-              {
-                role: 'user',
-                content: prompt
-              }
-            ]
-          })
-
-          const responseContent = completion.choices?.[0]?.message?.content
-          if (responseContent) {
-            // Try to parse the LLM response
-            try {
-              const jsonMatch = responseContent.match(/\{[\s\S]*\}/)
-              if (jsonMatch) {
-                const llmAnalysis = JSON.parse(jsonMatch[0])
-                
-                // Generate comprehensive analysis with LLM data
-                const analysis = generateMockAnalysis(validatedUrl.toString())
-                
-                // Override scores with LLM data if available
-                if (llmAnalysis.seoScore) analysis.scores.seo = llmAnalysis.seoScore
-                if (llmAnalysis.aeoScore) analysis.scores.aeo = llmAnalysis.aeoScore
-                if (llmAnalysis.geoScore) analysis.scores.geo = llmAnalysis.geoScore
-                analysis.overallScore = Math.round((analysis.scores.seo + analysis.scores.aeo + analysis.scores.geo) / 3)
-                
-                // Update recommendations if available
-                if (llmAnalysis.recommendations && Array.isArray(llmAnalysis.recommendations)) {
-                  analysis.topRecommendations = llmAnalysis.recommendations.map((rec: { priority?: string; title?: string; description?: string }) => ({
-                    priority: rec.priority || 'medium',
-                    title: rec.title || 'Recomendação',
-                    description: rec.description || '',
-                    impact: 'Impacto significativo na visibilidade'
-                  }))
+Conteúdo: ${content.substring(0, 800)}
+Responda apenas: {"seoScore": number, "aeoScore": number, "geoScore": number}`
+                  }
+                ],
+                temperature: 0.3
+              })
+              
+              const llmTimeout = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('LLM timeout')), llmTime)
+              )
+              
+              try {
+                const completion = await Promise.race([llmPromise, llmTimeout]) as {
+                  choices?: Array<{ message?: { content?: string } }>
                 }
-
-                return NextResponse.json(analysis)
+                
+                if (completion?.choices?.[0]?.message?.content) {
+                  const jsonMatch = completion.choices[0].message.content.match(/\{[\s\S]*\}/)
+                  if (jsonMatch) {
+                    const scores = JSON.parse(jsonMatch[0])
+                    if (scores.seoScore) analysis.scores.seo = scores.seoScore
+                    if (scores.aeoScore) analysis.scores.aeo = scores.aeoScore
+                    if (scores.geoScore) analysis.scores.geo = scores.geoScore
+                    analysis.seoAnalysis.score = analysis.scores.seo
+                    analysis.aeoAnalysis.score = analysis.scores.aeo
+                    analysis.geoAnalysis.score = analysis.scores.geo
+                    analysis.overallScore = Math.round((analysis.scores.seo + analysis.scores.aeo + analysis.scores.geo) / 3)
+                  }
+                }
+              } catch {
+                console.log('LLM timed out, using generated scores')
               }
-            } catch {
-              console.log('Failed to parse LLM response, using mock data')
             }
           }
-        } catch (llmError) {
-          console.log('LLM analysis failed, using mock data')
+        } catch {
+          console.log('Web reader timed out, using generated scores')
         }
+      } catch {
+        console.log('SDK not available, using generated analysis')
       }
-    } catch (sdkError) {
-      console.log('SDK initialization failed, using mock data')
     }
-
-    // Return mock analysis if all else fails
-    const mockAnalysis = generateMockAnalysis(validatedUrl.toString())
     
     // Add competitor analysis if URLs were provided
     if (competitors) {
-      const competitorUrls = competitors.split(/[,\n]/).map((url: string) => url.trim()).filter(Boolean)
-      mockAnalysis.competitors = competitorUrls.slice(0, 3).map((url: string) => ({
-        url,
-        score: Math.floor(Math.random() * 30) + 50,
-        strengths: [
-          'Boa estrutura de headings',
-          'Meta tags otimizadas',
-          'Conteúdo bem organizado'
-        ].slice(0, Math.floor(Math.random() * 3) + 1)
-      }))
+      const competitorUrls = competitors.split(/[,\n]/).map((u: string) => u.trim()).filter(Boolean)
+      analysis.competitors = competitorUrls.slice(0, 3).map((u: string) => {
+        const hash = u.split('').reduce((a, b) => ((a << 5) - a + b.charCodeAt(0)) | 0, 0)
+        return {
+          url: u,
+          score: 50 + Math.abs(hash % 35),
+          strengths: [
+            'Boa estrutura de headings',
+            'Meta tags otimizadas',
+            'Conteúdo bem organizado',
+            'Site responsivo',
+            'SSL ativo'
+          ].slice(0, Math.abs(hash % 3) + 1)
+        }
+      })
     }
 
-    return NextResponse.json(mockAnalysis)
+    console.log(`Analysis completed in ${Date.now() - startTime}ms for ${validatedUrl.toString()}`)
+    return NextResponse.json(analysis)
+    
   } catch (error) {
     console.error('Analysis error:', error)
     return NextResponse.json(

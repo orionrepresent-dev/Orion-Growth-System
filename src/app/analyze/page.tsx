@@ -131,13 +131,20 @@ export default function AnalyzePage() {
     setLoading(true)
 
     try {
+      // Create AbortController for timeout (25 seconds max)
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 25000)
+
       const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
+        signal: controller.signal,
       })
+
+      clearTimeout(timeoutId)
 
       if (!response.ok) {
         throw new Error('Erro ao processar análise')
@@ -151,7 +158,11 @@ export default function AnalyzePage() {
       
       router.push('/results')
     } catch (err) {
-      setError('Ocorreu um erro ao processar sua análise. Por favor, tente novamente.')
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('A análise está demorando muito. Por favor, tente novamente ou entre em contato via WhatsApp.')
+      } else {
+        setError('Ocorreu um erro ao processar sua análise. Por favor, tente novamente.')
+      }
       setLoading(false)
     }
   }
