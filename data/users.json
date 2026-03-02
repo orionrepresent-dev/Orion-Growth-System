@@ -1,0 +1,11 @@
+[
+  {
+    "id": "user_demo123",
+    "email": "demo@orion.com",
+    "password": "$2b$10$.Auoqe3a/NEoLJFkQjgOm.uBx6Ml5JKnFwa83QAHY1wG0jiDSSKs2",
+    "name": "Empresa Demo",
+    "company": "Orion Growth Studio",
+    "plan": "autoridade",
+    "createdAt": "2024-01-15T10:00:00.000Z"
+  }
+]

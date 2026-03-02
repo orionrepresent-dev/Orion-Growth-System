@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
   Search,
@@ -36,7 +37,13 @@ import {
   Edit,
   Trash2,
   Rocket,
-  Separator
+  LogOut,
+  Loader2,
+  Mail,
+  Phone,
+  Building2,
+  ExternalLink,
+  MessageCircle
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -45,23 +52,17 @@ import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Separator } from '@/components/ui/separator'
+import { SafeUser, DashboardStats, Lead } from '@/types'
 
-// Mock data for demonstration
-const clientData = {
-  name: 'Empresa Exemplo Ltda',
-  email: 'contato@empresaexemplo.com',
-  plan: 'growth',
-  planName: 'Growth',
-  planPrice: 997,
-  memberSince: '2024-01-15',
-  nextBilling: '2024-03-15',
-  credits: {
-    posts: { used: 8, total: 12 },
-    analyses: { used: 2, total: 3 },
-    reports: { used: 1, total: 2 }
-  }
+// Plan details
+const planDetails = {
+  presenca: { name: 'Presença Digital', price: 497 },
+  autoridade: { name: 'Autoridade Local', price: 997 },
+  dominacao: { name: 'Dominação de Mercado', price: 1497 }
 }
 
+// Roadmap items
 const roadmapItems = [
   { id: 1, week: 'Semana 1', title: 'Análise SEO Completa', status: 'completed', date: '01/02/2024', description: 'Auditoria técnica completa do site' },
   { id: 2, week: 'Semana 2', title: 'Business Audience & ICP', status: 'completed', date: '08/02/2024', description: 'Mapeamento do cliente ideal' },
@@ -71,6 +72,7 @@ const roadmapItems = [
   { id: 6, week: 'Semana 6', title: 'Relatório de ROI', status: 'pending', date: '08/03/2024', description: 'Análise de resultados mensal' }
 ]
 
+// ROI data
 const roiData = [
   { service: 'SEO Orgânico', investment: 997, return: 3190, roi: 320, trend: 'up' },
   { service: 'Redes Sociais', investment: 0, return: 850, roi: 0, trend: 'up' },
@@ -78,6 +80,7 @@ const roiData = [
   { service: 'Conteúdo Blog', investment: 0, return: 680, roi: 0, trend: 'stable' }
 ]
 
+// Social posts
 const socialPosts = [
   { id: 1, platform: 'instagram', content: '5 dicas de SEO para alavancar seu negócio digital...', status: 'scheduled', date: '25/02/2024', time: '10:00' },
   { id: 2, platform: 'linkedin', content: 'Você sabe o que é Business Audience e como ele pode transformar...', status: 'published', date: '22/02/2024', time: '09:00' },
@@ -85,6 +88,7 @@ const socialPosts = [
   { id: 4, platform: 'linkedin', content: '3 métricas essenciais que todo empreendedor deve acompanhar...', status: 'scheduled', date: '27/02/2024', time: '14:00' }
 ]
 
+// Services
 const services = [
   { name: 'Análise SEO Mensal', status: 'active', description: 'Auditoria completa com recomendações', progress: 75 },
   { name: 'Business Audience', status: 'active', description: 'ICP e análise de mercado', progress: 100 },
@@ -93,6 +97,7 @@ const services = [
   { name: 'Roadmap de Execução', status: 'active', description: 'Cronograma mensal de ações', progress: 50 }
 ]
 
+// ICP data
 const icpData = {
   demographics: {
     age: '35-45 anos',
@@ -113,7 +118,50 @@ const icpData = {
 }
 
 export default function DashboardPage() {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState('overview')
+  const [user, setUser] = useState<SafeUser | null>(null)
+  const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  // Fetch user and stats
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        // Fetch user
+        const userRes = await fetch('/api/auth/me')
+        const userData = await userRes.json()
+
+        if (!userData.success || !userData.user) {
+          router.push('/login?redirect=/dashboard')
+          return
+        }
+
+        setUser(userData.user)
+
+        // Fetch stats
+        const statsRes = await fetch('/api/stats')
+        const statsData = await statsRes.json()
+
+        if (statsData.success) {
+          setStats(statsData.stats)
+        }
+      } catch (err) {
+        console.error('Error fetching data:', err)
+        setError('Erro ao carregar dados')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [router])
+
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' })
+    router.push('/login')
+  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -129,6 +177,16 @@ export default function DashboardPage() {
         return <Badge className="bg-emerald-500">Publicado</Badge>
       case 'draft':
         return <Badge variant="outline">Rascunho</Badge>
+      case 'new':
+        return <Badge className="bg-blue-500">Novo</Badge>
+      case 'contacted':
+        return <Badge className="bg-amber-500">Contatado</Badge>
+      case 'converted':
+        return <Badge className="bg-emerald-500">Convertido</Badge>
+      case 'qualified':
+        return <Badge className="bg-teal-500">Qualificado</Badge>
+      case 'lost':
+        return <Badge variant="destructive">Perdido</Badge>
       default:
         return <Badge variant="secondary">{status}</Badge>
     }
@@ -144,6 +202,49 @@ export default function DashboardPage() {
         return <Globe className="w-4 h-4" />
     }
   }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    })
+  }
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-purple-500 mx-auto mb-4" />
+          <p className="text-muted-foreground">Carregando dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center">
+        <Card className="max-w-md">
+          <CardContent className="pt-6 text-center">
+            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-bold mb-2">Erro ao carregar</h2>
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <Button onClick={() => window.location.reload()}>Tentar novamente</Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Not logged in
+  if (!user) {
+    return null
+  }
+
+  const planInfo = planDetails[user.plan || 'presenca']
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
@@ -164,7 +265,7 @@ export default function DashboardPage() {
               <div className="hidden sm:block h-8 w-px bg-border mx-2" />
               <Badge variant="secondary" className="hidden sm:flex">
                 <Crown className="w-3 h-3 mr-1 text-purple-500" />
-                {clientData.planName}
+                {planInfo.name}
               </Badge>
             </div>
             
@@ -175,9 +276,12 @@ export default function DashboardPage() {
               <Button variant="ghost" size="icon">
                 <Settings className="w-5 h-5" />
               </Button>
+              <Button variant="ghost" size="icon" onClick={handleLogout}>
+                <LogOut className="w-5 h-5" />
+              </Button>
               <Avatar className="w-8 h-8">
                 <AvatarFallback className="bg-gradient-to-br from-purple-500 to-violet-500 text-white text-sm">
-                  {clientData.name.charAt(0)}
+                  {user.name.charAt(0)}
                 </AvatarFallback>
               </Avatar>
             </div>
@@ -195,7 +299,7 @@ export default function DashboardPage() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold mb-2">
-                Bem-vindo, <span className="gradient-text">{clientData.name}</span>
+                Bem-vindo, <span className="text-purple-600">{user.name}</span>
               </h1>
               <p className="text-muted-foreground">
                 Acompanhe seu crescimento e resultados em tempo real.
@@ -206,12 +310,12 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-4">
                   <div>
                     <p className="text-sm text-white/80">Plano Atual</p>
-                    <p className="text-xl font-bold">{clientData.planName}</p>
+                    <p className="text-xl font-bold">{planInfo.name}</p>
                   </div>
                   <div className="h-10 w-px bg-white/20" />
                   <div>
-                    <p className="text-sm text-white/80">Próxima cobrança</p>
-                    <p className="font-medium">{clientData.nextBilling}</p>
+                    <p className="text-sm text-white/80">Investimento</p>
+                    <p className="font-medium">R$ {planInfo.price}/mês</p>
                   </div>
                 </div>
               </CardContent>
@@ -219,7 +323,7 @@ export default function DashboardPage() {
           </div>
         </motion.div>
 
-        {/* Quick Stats */}
+        {/* Quick Stats - REAL DATA */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -229,41 +333,43 @@ export default function DashboardPage() {
           <Card>
             <CardContent className="pt-4">
               <div className="flex items-center gap-2 mb-2">
+                <Users className="w-4 h-4 text-blue-500" />
+                <span className="text-sm text-muted-foreground">Total de Leads</span>
+              </div>
+              <div className="text-2xl font-bold">{stats?.totalLeads || 0}</div>
+              <p className="text-xs text-emerald-500 mt-1">
+                +{stats?.newLeads || 0} novos
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Search className="w-4 h-4 text-purple-500" />
+                <span className="text-sm text-muted-foreground">Análises</span>
+              </div>
+              <div className="text-2xl font-bold">{stats?.analysesPerformed || 0}</div>
+              <Progress value={(stats?.analysesPerformed || 0) * 20} className="h-2 mt-2" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Mail className="w-4 h-4 text-teal-500" />
+                <span className="text-sm text-muted-foreground">Emails Enviados</span>
+              </div>
+              <div className="text-2xl font-bold">{stats?.emailsSent || 0}</div>
+              <Progress value={(stats?.emailsSent || 0) * 5} className="h-2 mt-2" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 mb-2">
                 <TrendingUp className="w-4 h-4 text-emerald-500" />
-                <span className="text-sm text-muted-foreground">Tráfego Orgânico</span>
+                <span className="text-sm text-muted-foreground">Conversão</span>
               </div>
-              <div className="text-2xl font-bold">+127%</div>
-              <Progress value={75} className="h-2 mt-2" />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-2 mb-2">
-                <DollarSign className="w-4 h-4 text-purple-500" />
-                <span className="text-sm text-muted-foreground">ROI Total</span>
-              </div>
-              <div className="text-2xl font-bold">3.2x</div>
-              <Progress value={80} className="h-2 mt-2" />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Target className="w-4 h-4 text-blue-500" />
-                <span className="text-sm text-muted-foreground">SEO Score</span>
-              </div>
-              <div className="text-2xl font-bold">78/100</div>
-              <Progress value={78} className="h-2 mt-2" />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Users className="w-4 h-4 text-pink-500" />
-                <span className="text-sm text-muted-foreground">Engajamento</span>
-              </div>
-              <div className="text-2xl font-bold">+45%</div>
-              <Progress value={65} className="h-2 mt-2" />
+              <div className="text-2xl font-bold">{stats?.conversionRate || 0}%</div>
+              <Progress value={stats?.conversionRate || 0} className="h-2 mt-2" />
             </CardContent>
           </Card>
         </motion.div>
@@ -272,10 +378,10 @@ export default function DashboardPage() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+            <TabsTrigger value="leads">Leads</TabsTrigger>
             <TabsTrigger value="roadmap">Roadmap</TabsTrigger>
             <TabsTrigger value="roi">ROI</TabsTrigger>
             <TabsTrigger value="social">Redes Sociais</TabsTrigger>
-            <TabsTrigger value="icp">Business Audience</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -310,70 +416,182 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
 
-              {/* Credits */}
+              {/* Revenue Summary */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Zap className="w-5 h-5 text-amber-500" />
-                    Créditos do Mês
+                    <DollarSign className="w-5 h-5 text-emerald-500" />
+                    Receita
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm">Posts Redes Sociais</span>
-                      <span className="text-sm font-medium">{clientData.credits.posts.used}/{clientData.credits.posts.total}</span>
-                    </div>
-                    <Progress value={(clientData.credits.posts.used / clientData.credits.posts.total) * 100} className="h-2" />
+                  <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg">
+                    <p className="text-sm text-muted-foreground">Receita Confirmada</p>
+                    <p className="text-2xl font-bold text-emerald-600">
+                      R$ {(stats?.revenue.confirmed || 0).toLocaleString('pt-BR')}
+                    </p>
                   </div>
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm">Análises SEO</span>
-                      <span className="text-sm font-medium">{clientData.credits.analyses.used}/{clientData.credits.analyses.total}</span>
-                    </div>
-                    <Progress value={(clientData.credits.analyses.used / clientData.credits.analyses.total) * 100} className="h-2" />
+                  <div className="p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
+                    <p className="text-sm text-muted-foreground">Potencial de Receita</p>
+                    <p className="text-2xl font-bold text-purple-600">
+                      R$ {(stats?.revenue.potential || 0).toLocaleString('pt-BR')}
+                    </p>
                   </div>
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm">Relatórios PDF</span>
-                      <span className="text-sm font-medium">{clientData.credits.reports.used}/{clientData.credits.reports.total}</span>
-                    </div>
-                    <Progress value={(clientData.credits.reports.used / clientData.credits.reports.total) * 100} className="h-2" />
-                  </div>
-                  <div className="h-px bg-border my-4" />
+                  <Separator />
                   <Button className="w-full bg-gradient-to-r from-purple-600 to-violet-600">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Adicionar Créditos
+                    <Download className="w-4 h-4 mr-2" />
+                    Exportar Relatório
                   </Button>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Recent Activity */}
+            {/* Recent Leads - REAL DATA */}
             <Card>
               <CardHeader>
-                <CardTitle>Atividades Recentes</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Leads Recentes</CardTitle>
+                  <Button variant="outline" size="sm" onClick={() => setActiveTab('leads')}>
+                    Ver todos
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {roadmapItems.slice(0, 4).map((item) => (
-                    <div key={item.id} className="flex items-center gap-4 p-3 rounded-lg bg-muted/30">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        item.status === 'completed' ? 'bg-emerald-500' :
-                        item.status === 'active' ? 'bg-purple-500' : 'bg-muted'
-                      }`}>
-                        {item.status === 'completed' ? <CheckCircle2 className="w-5 h-5 text-white" /> :
-                         item.status === 'active' ? <RefreshCw className="w-5 h-5 text-white animate-spin" /> :
-                         <Clock className="w-5 h-5 text-muted-foreground" />}
+                {stats?.recentLeads && stats.recentLeads.length > 0 ? (
+                  <div className="space-y-3">
+                    {stats.recentLeads.slice(0, 5).map((lead) => (
+                      <div key={lead.id} className="flex items-center gap-4 p-3 rounded-lg bg-muted/30">
+                        <Avatar>
+                          <AvatarFallback className="bg-gradient-to-br from-purple-500 to-violet-500 text-white">
+                            {lead.data.name.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium truncate">{lead.data.name}</div>
+                          <div className="text-sm text-muted-foreground truncate">{lead.data.email}</div>
+                        </div>
+                        <div className="text-right">
+                          {getStatusBadge(lead.status)}
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {formatDate(lead.createdAt)}
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <div className="font-medium">{item.title}</div>
-                        <div className="text-sm text-muted-foreground">{item.week} - {item.date}</div>
-                      </div>
-                      {getStatusBadge(item.status)}
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p>Nenhum lead encontrado</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Leads Tab - REAL DATA */}
+          <TabsContent value="leads">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="w-5 h-5 text-purple-500" />
+                      Todos os Leads
+                    </CardTitle>
+                    <CardDescription>
+                      Gerencie e acompanhe seus leads
+                    </CardDescription>
+                  </div>
+                  <Button size="sm" className="bg-gradient-to-r from-purple-600 to-violet-600">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Novo Lead
+                  </Button>
                 </div>
+              </CardHeader>
+              <CardContent>
+                {stats?.recentLeads && stats.recentLeads.length > 0 ? (
+                  <ScrollArea className="h-[500px]">
+                    <div className="space-y-4">
+                      {stats.recentLeads.map((lead) => (
+                        <Card key={lead.id} className="overflow-hidden">
+                          <div className="flex flex-col md:flex-row md:items-center gap-4 p-4">
+                            <Avatar className="h-12 w-12">
+                              <AvatarFallback className="bg-gradient-to-br from-purple-500 to-violet-500 text-white text-lg">
+                                {lead.data.name.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1">
+                              <div className="font-semibold text-lg">{lead.data.name}</div>
+                              <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                                {lead.data.email && (
+                                  <span className="flex items-center gap-1">
+                                    <Mail className="w-3 h-3" />
+                                    {lead.data.email}
+                                  </span>
+                                )}
+                                {lead.data.phone && (
+                                  <span className="flex items-center gap-1">
+                                    <Phone className="w-3 h-3" />
+                                    {lead.data.phone}
+                                  </span>
+                                )}
+                                {lead.data.company && (
+                                  <span className="flex items-center gap-1">
+                                    <Building2 className="w-3 h-3" />
+                                    {lead.data.company}
+                                  </span>
+                                )}
+                              </div>
+                              {lead.data.url && (
+                                <a 
+                                  href={lead.data.url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="text-sm text-purple-600 hover:underline flex items-center gap-1 mt-1"
+                                >
+                                  <Globe className="w-3 h-3" />
+                                  {lead.data.url}
+                                  <ExternalLink className="w-3 h-3" />
+                                </a>
+                              )}
+                            </div>
+                            <div className="flex flex-col md:items-end gap-2">
+                              {getStatusBadge(lead.status)}
+                              <span className="text-xs text-muted-foreground">
+                                {formatDate(lead.createdAt)}
+                              </span>
+                              {lead.quote && (
+                                <div className="text-sm">
+                                  <span className="text-emerald-600 font-medium">
+                                    R$ {lead.quote.minPrice?.toLocaleString('pt-BR')} - R$ {lead.quote.maxPrice?.toLocaleString('pt-BR')}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex gap-2">
+                              <Button variant="outline" size="icon">
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                              <Button variant="outline" size="icon" asChild>
+                                <a href={`https://wa.me/55${lead.data.phone?.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer">
+                                  <MessageCircle className="w-4 h-4" />
+                                </a>
+                              </Button>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Users className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg">Nenhum lead encontrado</p>
+                    <p className="text-sm">Os leads aparecerão aqui quando houver cadastros</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -392,7 +610,6 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="relative">
-                  {/* Timeline */}
                   <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-muted" />
                   
                   <div className="space-y-6">
@@ -483,7 +700,7 @@ export default function DashboardPage() {
                       </div>
                       <div className="text-right">
                         <p className="text-sm text-muted-foreground">Investimento Total</p>
-                        <p className="text-2xl font-bold">R$ {clientData.planPrice}</p>
+                        <p className="text-2xl font-bold">R$ {planInfo.price}</p>
                       </div>
                     </div>
                     <div className="mt-4 flex items-center gap-2">
@@ -501,15 +718,17 @@ export default function DashboardPage() {
                 <CardContent className="space-y-4">
                   <div className="p-4 bg-muted/30 rounded-lg">
                     <p className="text-sm text-muted-foreground">Investimento Mensal</p>
-                    <p className="text-2xl font-bold">R$ {clientData.planPrice}</p>
+                    <p className="text-2xl font-bold">R$ {planInfo.price}</p>
                   </div>
                   <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg">
                     <p className="text-sm text-muted-foreground">Receita Gerada</p>
-                    <p className="text-2xl font-bold text-emerald-600">R$ 5.920</p>
+                    <p className="text-2xl font-bold text-emerald-600">
+                      R$ {(stats?.revenue.confirmed || 0).toLocaleString('pt-BR')}
+                    </p>
                   </div>
                   <div className="p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
                     <p className="text-sm text-muted-foreground">Taxa de Conversão</p>
-                    <p className="text-2xl font-bold text-purple-600">+3.2%</p>
+                    <p className="text-2xl font-bold text-purple-600">{stats?.conversionRate || 0}%</p>
                   </div>
                   <Button className="w-full bg-gradient-to-r from-purple-600 to-violet-600">
                     <Download className="w-4 h-4 mr-2" />
@@ -597,7 +816,7 @@ export default function DashboardPage() {
                       <p className="text-xs text-emerald-500">+8%</p>
                     </div>
                   </div>
-                  <div className="h-px bg-border" />
+                  <Separator />
                   <div className="p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
                     <p className="text-sm text-muted-foreground">Posts este mês</p>
                     <p className="text-2xl font-bold">8/12</p>
@@ -609,173 +828,6 @@ export default function DashboardPage() {
                   </div>
                 </CardContent>
               </Card>
-            </div>
-          </TabsContent>
-
-          {/* Business Audience / ICP Tab */}
-          <TabsContent value="icp">
-            <div className="grid lg:grid-cols-3 gap-6">
-              <Card className="lg:col-span-2">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        <Target className="w-5 h-5 text-purple-500" />
-                        Business Audience & ICP
-                      </CardTitle>
-                      <CardDescription>
-                        Perfil do Cliente Ideal e Análise de Mercado
-                      </CardDescription>
-                    </div>
-                    <Button variant="outline" size="sm">
-                      <Download className="w-4 h-4 mr-2" />
-                      Exportar PDF
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <Tabs defaultValue="demographics" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3">
-                      <TabsTrigger value="demographics">Demográfico</TabsTrigger>
-                      <TabsTrigger value="psychographics">Psicográfico</TabsTrigger>
-                      <TabsTrigger value="benchmarks">Benchmarking</TabsTrigger>
-                    </TabsList>
-                    
-                    <TabsContent value="demographics" className="space-y-4 mt-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="p-4 bg-muted/30 rounded-lg">
-                          <p className="text-sm text-muted-foreground mb-1">Faixa Etária</p>
-                          <p className="font-semibold">{icpData.demographics.age}</p>
-                        </div>
-                        <div className="p-4 bg-muted/30 rounded-lg">
-                          <p className="text-sm text-muted-foreground mb-1">Gênero</p>
-                          <p className="font-semibold">{icpData.demographics.gender}</p>
-                        </div>
-                        <div className="p-4 bg-muted/30 rounded-lg">
-                          <p className="text-sm text-muted-foreground mb-1">Localização</p>
-                          <p className="font-semibold">{icpData.demographics.location}</p>
-                        </div>
-                        <div className="p-4 bg-muted/30 rounded-lg">
-                          <p className="text-sm text-muted-foreground mb-1">Renda</p>
-                          <p className="font-semibold">{icpData.demographics.income}</p>
-                        </div>
-                      </div>
-                    </TabsContent>
-                    
-                    <TabsContent value="psychographics" className="space-y-4 mt-4">
-                      <div className="p-4 bg-muted/30 rounded-lg">
-                        <p className="text-sm font-medium mb-2">Interesses</p>
-                        <div className="flex flex-wrap gap-2">
-                          {icpData.psychographics.interests.map((interest, i) => (
-                            <Badge key={i} variant="secondary">{interest}</Badge>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="p-4 bg-muted/30 rounded-lg">
-                        <p className="text-sm font-medium mb-2">Comportamentos</p>
-                        <ul className="space-y-1">
-                          {icpData.psychographics.behaviors.map((behavior, i) => (
-                            <li key={i} className="flex items-center gap-2 text-sm">
-                              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                              {behavior}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg">
-                        <p className="text-sm font-medium mb-2">Dores Principais</p>
-                        <ul className="space-y-1">
-                          {icpData.psychographics.pain_points.map((pain, i) => (
-                            <li key={i} className="flex items-center gap-2 text-sm">
-                              <AlertCircle className="w-4 h-4 text-amber-500" />
-                              {pain}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </TabsContent>
-                    
-                    <TabsContent value="benchmarks" className="space-y-4 mt-4">
-                      <div className="p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm text-muted-foreground">Posição no Mercado</p>
-                            <p className="text-2xl font-bold text-purple-600">{icpData.benchmarks.position}</p>
-                          </div>
-                          <Target className="w-12 h-12 text-purple-500/50" />
-                        </div>
-                      </div>
-                      <div className="p-4 bg-muted/30 rounded-lg">
-                        <p className="text-sm font-medium mb-2">Principais Concorrentes</p>
-                        <div className="flex flex-wrap gap-2">
-                          {icpData.benchmarks.competitors.map((competitor, i) => (
-                            <Badge key={i} variant="outline">{competitor}</Badge>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg">
-                        <p className="text-sm font-medium mb-2">Oportunidades Identificadas</p>
-                        <ul className="space-y-1">
-                          {icpData.benchmarks.opportunities.map((opp, i) => (
-                            <li key={i} className="flex items-center gap-2 text-sm">
-                              <TrendingUp className="w-4 h-4 text-emerald-500" />
-                              {opp}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </TabsContent>
-                  </Tabs>
-                </CardContent>
-              </Card>
-
-              <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Premissas ADS</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center justify-between p-2 bg-muted/30 rounded">
-                      <span className="text-sm">CPA Alvo</span>
-                      <span className="font-medium">R$ 45,00</span>
-                    </div>
-                    <div className="flex items-center justify-between p-2 bg-muted/30 rounded">
-                      <span className="text-sm">ROAS Mínimo</span>
-                      <span className="font-medium">3.5x</span>
-                    </div>
-                    <div className="flex items-center justify-between p-2 bg-muted/30 rounded">
-                      <span className="text-sm">CTR Esperado</span>
-                      <span className="font-medium">2.5%</span>
-                    </div>
-                    <div className="flex items-center justify-between p-2 bg-emerald-50 dark:bg-emerald-950/20 rounded">
-                      <span className="text-sm">Performance</span>
-                      <span className="font-medium text-emerald-600">Acima da média</span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Ações Recomendadas</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2">
-                      <li className="flex items-start gap-2 text-sm">
-                        <ArrowRight className="w-4 h-4 text-purple-500 mt-0.5 shrink-0" />
-                        <span>Aumentar investimento em LinkedIn orgânico</span>
-                      </li>
-                      <li className="flex items-start gap-2 text-sm">
-                        <ArrowRight className="w-4 h-4 text-purple-500 mt-0.5 shrink-0" />
-                        <span>Criar conteúdo técnico para featured snippets</span>
-                      </li>
-                      <li className="flex items-start gap-2 text-sm">
-                        <ArrowRight className="w-4 h-4 text-purple-500 mt-0.5 shrink-0" />
-                        <span>Investir em vídeos curtos (Reels/Shorts)</span>
-                      </li>
-                    </ul>
-                  </CardContent>
-                </Card>
-              </div>
             </div>
           </TabsContent>
         </Tabs>
