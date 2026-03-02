@@ -1,0 +1,20 @@
+[
+  {
+    "id": "lead_1772417246835_ae6xvcyal",
+    "createdAt": "2026-03-02T02:07:26.835Z",
+    "type": "analysis",
+    "status": "new",
+    "data": {
+      "name": "João Silva",
+      "email": "joao@protecsul.com.br",
+      "phone": "51987654321",
+      "company": "Protecsul",
+      "url": "https://protecsul.com.br",
+      "goals": "Aumentar presença online e conseguir mais clientes"
+    },
+    "quote": {
+      "minPrice": 997,
+      "maxPrice": 2997
+    }
+  }
+]
