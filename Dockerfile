@@ -30,8 +30,9 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# Create data directory for leads.json
-RUN mkdir -p /app/data && chown -R nextjs:nodejs /app/data
+# Create directories with proper permissions
+RUN mkdir -p /app/data /app/.next/cache && \
+    chown -R nextjs:nodejs /app/data /app/.next
 
 USER nextjs
 
