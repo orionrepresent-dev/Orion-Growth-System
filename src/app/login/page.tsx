@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 import {
@@ -23,7 +24,7 @@ import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirect = searchParams.get('redirect') || '/dashboard'
@@ -99,7 +100,6 @@ export default function LoginPage() {
 
       if (data.success) {
         setRegisterSuccess(true)
-        // Auto redirect after successful registration
         setTimeout(() => {
           router.push(redirect)
           router.refresh()
@@ -117,17 +117,227 @@ export default function LoginPage() {
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault()
     setForgotLoading(true)
-
-    // Simulate sending email (in production, this would call an API)
     await new Promise(resolve => setTimeout(resolve, 1500))
+    setForgotSuccess(true)
+    setForgotLoading(false)
+  }
 
+  return (
+    <Card className="bg-white/5 border-white/10 backdrop-blur-xl">
+      <Tabs defaultValue="login" className="w-full">
+        <CardHeader className="pb-0">
+          <TabsList className="grid w-full grid-cols-2 bg-white/5">
+            <TabsTrigger value="login" className="data-[state=active]:bg-white/10">
+              Entrar
+            </TabsTrigger>
+            <TabsTrigger value="register" className="data-[state=active]:bg-white/10">
+              Criar conta
+            </TabsTrigger>
+          </TabsList>
+        </CardHeader>
+
+        <CardContent className="pt-6">
+          {/* Login Tab */}
+          <TabsContent value="login" className="space-y-4 mt-0">
+            <form onSubmit={handleLogin} className="space-y-4">
+              {loginError && (
+                <Alert variant="destructive" className="bg-red-500/10 border-red-500/20">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{loginError}</AlertDescription>
+                </Alert>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="login-email" className="text-white">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    id="login-email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-slate-500"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="login-password" className="text-white">Senha</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    id="login-password"
+                    type={showLoginPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    className="pl-10 pr-10 bg-white/5 border-white/10 text-white placeholder:text-slate-500"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowLoginPassword(!showLoginPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                  >
+                    {showLoginPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white"
+                disabled={loginLoading}
+              >
+                {loginLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
+                Entrar
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </form>
+
+            <div className="mt-4 p-3 bg-teal-500/10 rounded-lg border border-teal-500/20">
+              <p className="text-xs text-teal-300 text-center">
+                <strong>Demo:</strong> demo@orion.com / senha: demo123
+              </p>
+            </div>
+          </TabsContent>
+
+          {/* Register Tab */}
+          <TabsContent value="register" className="space-y-4 mt-0">
+            <form onSubmit={handleRegister} className="space-y-4">
+              {registerError && (
+                <Alert variant="destructive" className="bg-red-500/10 border-red-500/20">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{registerError}</AlertDescription>
+                </Alert>
+              )}
+
+              {registerSuccess && (
+                <Alert className="bg-emerald-500/10 border-emerald-500/20">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  <AlertDescription className="text-emerald-400">
+                    Conta criada! Redirecionando...
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="register-name" className="text-white">Nome *</Label>
+                <Input
+                  id="register-name"
+                  type="text"
+                  placeholder="Seu nome"
+                  value={registerName}
+                  onChange={(e) => setRegisterName(e.target.value)}
+                  className="bg-white/5 border-white/10 text-white placeholder:text-slate-500"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="register-email" className="text-white">Email *</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    id="register-email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={registerEmail}
+                    onChange={(e) => setRegisterEmail(e.target.value)}
+                    className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-slate-500"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="register-company" className="text-white">Empresa</Label>
+                <div className="relative">
+                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    id="register-company"
+                    type="text"
+                    placeholder="Nome da empresa"
+                    value={registerCompany}
+                    onChange={(e) => setRegisterCompany(e.target.value)}
+                    className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-slate-500"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="register-password" className="text-white">Senha *</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    id="register-password"
+                    type={showRegisterPassword ? 'text' : 'password'}
+                    placeholder="Mínimo 6 caracteres"
+                    value={registerPassword}
+                    onChange={(e) => setRegisterPassword(e.target.value)}
+                    className="pl-10 pr-10 bg-white/5 border-white/10 text-white placeholder:text-slate-500"
+                    required
+                    minLength={6}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowRegisterPassword(!showRegisterPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                  >
+                    {showRegisterPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full bg-gradient-to-r from-purple-500 to-violet-500 hover:from-purple-600 hover:to-violet-600 text-white"
+                disabled={registerLoading}
+              >
+                {registerLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
+                Criar conta
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </form>
+          </TabsContent>
+        </CardContent>
+      </Tabs>
+    </Card>
+  )
+}
+
+function LoadingFallback() {
+  return (
+    <Card className="bg-white/5 border-white/10 backdrop-blur-xl">
+      <CardContent className="py-12 text-center">
+        <Loader2 className="w-8 h-8 text-teal-500 animate-spin mx-auto" />
+        <p className="text-slate-400 mt-4">Carregando...</p>
+      </CardContent>
+    </Card>
+  )
+}
+
+export default function LoginPage() {
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [forgotLoading, setForgotLoading] = useState(false)
+  const [forgotSuccess, setForgotSuccess] = useState(false)
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setForgotLoading(true)
+    await new Promise(resolve => setTimeout(resolve, 1500))
     setForgotSuccess(true)
     setForgotLoading(false)
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
-      {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl" />
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
@@ -139,7 +349,6 @@ export default function LoginPage() {
         transition={{ duration: 0.5 }}
         className="relative w-full max-w-md"
       >
-        {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/">
             <Image 
@@ -153,193 +362,9 @@ export default function LoginPage() {
           <p className="text-slate-400 mt-2">Acesse sua área do cliente</p>
         </div>
 
-        <Card className="bg-white/5 border-white/10 backdrop-blur-xl">
-          <Tabs defaultValue="login" className="w-full">
-            <CardHeader className="pb-0">
-              <TabsList className="grid w-full grid-cols-2 bg-white/5">
-                <TabsTrigger value="login" className="data-[state=active]:bg-white/10">
-                  Entrar
-                </TabsTrigger>
-                <TabsTrigger value="register" className="data-[state=active]:bg-white/10">
-                  Criar conta
-                </TabsTrigger>
-              </TabsList>
-            </CardHeader>
-
-            <CardContent className="pt-6">
-              {/* Login Tab */}
-              <TabsContent value="login" className="space-y-4 mt-0">
-                <form onSubmit={handleLogin} className="space-y-4">
-                  {loginError && (
-                    <Alert variant="destructive" className="bg-red-500/10 border-red-500/20">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>{loginError}</AlertDescription>
-                    </Alert>
-                  )}
-
-                  <div className="space-y-2">
-                    <Label htmlFor="login-email" className="text-white">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                      <Input
-                        id="login-email"
-                        type="email"
-                        placeholder="seu@email.com"
-                        value={loginEmail}
-                        onChange={(e) => setLoginEmail(e.target.value)}
-                        className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-slate-500"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="login-password" className="text-white">Senha</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                      <Input
-                        id="login-password"
-                        type={showLoginPassword ? 'text' : 'password'}
-                        placeholder="••••••••"
-                        value={loginPassword}
-                        onChange={(e) => setLoginPassword(e.target.value)}
-                        className="pl-10 pr-10 bg-white/5 border-white/10 text-white placeholder:text-slate-500"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowLoginPassword(!showLoginPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
-                      >
-                        {showLoginPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <Button
-                    type="submit"
-                    className="w-full bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white"
-                    disabled={loginLoading}
-                  >
-                    {loginLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    ) : null}
-                    Entrar
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
-                </form>
-
-                {/* Demo credentials */}
-                <div className="mt-4 p-3 bg-teal-500/10 rounded-lg border border-teal-500/20">
-                  <p className="text-xs text-teal-300 text-center">
-                    <strong>Demo:</strong> demo@orion.com / senha: demo123
-                  </p>
-                </div>
-              </TabsContent>
-
-              {/* Register Tab */}
-              <TabsContent value="register" className="space-y-4 mt-0">
-                <form onSubmit={handleRegister} className="space-y-4">
-                  {registerError && (
-                    <Alert variant="destructive" className="bg-red-500/10 border-red-500/20">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>{registerError}</AlertDescription>
-                    </Alert>
-                  )}
-
-                  {registerSuccess && (
-                    <Alert className="bg-emerald-500/10 border-emerald-500/20">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                      <AlertDescription className="text-emerald-400">
-                        Conta criada! Redirecionando...
-                      </AlertDescription>
-                    </Alert>
-                  )}
-
-                  <div className="space-y-2">
-                    <Label htmlFor="register-name" className="text-white">Nome *</Label>
-                    <Input
-                      id="register-name"
-                      type="text"
-                      placeholder="Seu nome"
-                      value={registerName}
-                      onChange={(e) => setRegisterName(e.target.value)}
-                      className="bg-white/5 border-white/10 text-white placeholder:text-slate-500"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="register-email" className="text-white">Email *</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                      <Input
-                        id="register-email"
-                        type="email"
-                        placeholder="seu@email.com"
-                        value={registerEmail}
-                        onChange={(e) => setRegisterEmail(e.target.value)}
-                        className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-slate-500"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="register-company" className="text-white">Empresa</Label>
-                    <div className="relative">
-                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                      <Input
-                        id="register-company"
-                        type="text"
-                        placeholder="Nome da empresa"
-                        value={registerCompany}
-                        onChange={(e) => setRegisterCompany(e.target.value)}
-                        className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-slate-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="register-password" className="text-white">Senha *</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                      <Input
-                        id="register-password"
-                        type={showRegisterPassword ? 'text' : 'password'}
-                        placeholder="Mínimo 6 caracteres"
-                        value={registerPassword}
-                        onChange={(e) => setRegisterPassword(e.target.value)}
-                        className="pl-10 pr-10 bg-white/5 border-white/10 text-white placeholder:text-slate-500"
-                        required
-                        minLength={6}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowRegisterPassword(!showRegisterPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
-                      >
-                        {showRegisterPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <Button
-                    type="submit"
-                    className="w-full bg-gradient-to-r from-purple-500 to-violet-500 hover:from-purple-600 hover:to-violet-600 text-white"
-                    disabled={registerLoading}
-                  >
-                    {registerLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    ) : null}
-                    Criar conta
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
-                </form>
-              </TabsContent>
-            </CardContent>
-          </Tabs>
-        </Card>
+        <Suspense fallback={<LoadingFallback />}>
+          <LoginContent />
+        </Suspense>
 
         {/* Forgot Password */}
         <div className="mt-6 text-center">
@@ -399,7 +424,6 @@ export default function LoginPage() {
           </details>
         </div>
 
-        {/* Back to home */}
         <div className="mt-6 text-center">
           <Link href="/" className="text-sm text-slate-400 hover:text-white transition-colors">
             ← Voltar para o site
