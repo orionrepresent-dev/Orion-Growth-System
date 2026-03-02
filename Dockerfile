@@ -14,16 +14,16 @@ RUN bun install --frozen-lockfile
 COPY . .
 RUN bun run build
 
-# Production image
-FROM base AS runner
+# Production image - using node slim for smaller footprint
+FROM node:20-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# Create non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Create non-root user (Debian style)
+RUN groupadd --system --gid 1001 nodejs
+RUN useradd --system --uid 1001 --gid nodejs nextjs
 
 # Copy built application
 COPY --from=builder /app/public ./public
