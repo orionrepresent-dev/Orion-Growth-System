@@ -1,0 +1,34 @@
+# Orion Growth Studio - Docker Compose
+# Deploy atrás do Caddy (rede externa)
+
+services:
+  studio-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: studio-app
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - EMAIL_FROM=${EMAIL_FROM:-onboarding@resend.dev}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-pablo@orionconsultoria.com.br}
+      - ZAPI_INSTANCE=${ZAPI_INSTANCE}
+      - ZAPI_TOKEN=${ZAPI_TOKEN}
+    expose:
+      - "3000"
+    volumes:
+      - /data/studio-app:/app/data
+    networks:
+      - caddy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  caddy:
+    external: true

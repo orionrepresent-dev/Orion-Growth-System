@@ -1,0 +1,53 @@
+[
+  {
+    "id": "lead_1772464845420_iw9n73lv5",
+    "createdAt": "2026-03-02T15:20:45.420Z",
+    "type": "analysis",
+    "status": "new",
+    "data": {
+      "name": "Teste Rápido",
+      "email": "rapido@teste.com",
+      "phone": "51999999999",
+      "url": "https://teste.com"
+    }
+  },
+  {
+    "id": "lead_1772454949139_ffnih88to",
+    "createdAt": "2026-03-02T12:35:49.139Z",
+    "type": "analysis",
+    "status": "contacted",
+    "data": {
+      "name": "João Silva",
+      "email": "joao@teste.com",
+      "phone": "51999999999",
+      "url": "https://teste.com.br"
+    },
+    "quote": {
+      "minPrice": 997,
+      "maxPrice": 2997,
+      "services": [
+        "SEO",
+        "AEO"
+      ]
+    },
+    "notes": "Cliente contatado via WhatsApp"
+  },
+  {
+    "id": "lead_1772417246835_ae6xvcyal",
+    "createdAt": "2026-03-02T02:07:26.835Z",
+    "type": "analysis",
+    "status": "new",
+    "data": {
+      "name": "João Silva",
+      "email": "joao@protecsul.com.br",
+      "phone": "51987654321",
+      "company": "Protecsul",
+      "url": "https://protecsul.com.br",
+      "goals": "Aumentar presença online e conseguir mais clientes"
+    },
+    "quote": {
+      "minPrice": 997,
+      "maxPrice": 2997
+    }
+  }
+]
